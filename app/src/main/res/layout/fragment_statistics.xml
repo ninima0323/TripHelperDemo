@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:bind="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="statList"
+            type="android.databinding.ObservableArrayList&lt;com.example.kimnahyeon.testscrollview.data.Statistics&gt;" />
+    </data>
+<FrameLayout
+    android:id="@+id/fgStat"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white_70">
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/fgStat_rv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"
+        android:paddingTop="24dp"
+        app:layoutManager="android.support.v7.widget.LinearLayoutManager"/>
+
+</FrameLayout>
+</layout>
