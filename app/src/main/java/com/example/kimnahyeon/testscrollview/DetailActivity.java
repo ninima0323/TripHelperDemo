@@ -4,16 +4,23 @@ import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.databinding.DataBindingUtil;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.support.annotation.Nullable;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -35,8 +42,12 @@ import com.example.kimnahyeon.testscrollview.fragment.ContentFragment;
 import com.example.kimnahyeon.testscrollview.fragment.MemoFragment;
 import com.example.kimnahyeon.testscrollview.fragment.StatisticsFragment;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import com.example.kimnahyeon.testscrollview.databinding.ActivityDetailBinding;
 
@@ -49,16 +60,19 @@ public class DetailActivity extends AppCompatActivity {
     Trip trip;
     int vibrantColor, vibrantDarkColor, vibrantLightColor, MuteColor, MuteLightColor, MuteDarkColor, Do;
 
+    private static final int PICK_FROM_CAMERA = 0000;
+    private static final int PICK_FROM_ALBUM = 1111;
+    private int BASIC = 445556;
+    private Uri photoUri;
+    private String currentPhotoPath;//실제 사진 파일 경로
+    String mImageCaptureName;//이미지 이름
+    CollapsingToolbarLayout collapsingToolbarLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
         final ActivityDetailBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_detail);
-
-//        peopletv = (TextView)findViewById(R.id.people_tv);
-//        datetv = (TextView)findViewById(R.id.date_tv);
-//        date2tv = (TextView)findViewById(R.id.date2_tv);
-//        placetv = (TextView)findViewById(R.id.place_tv);
 
         Intent intent = getIntent();
         trip= intent.getParcelableExtra("testData");
@@ -70,10 +84,6 @@ public class DetailActivity extends AppCompatActivity {
         binding.dateTv.setText(trip.getFirstDate().get());
         binding.date2Tv.setText(trip.getLastDate().get());
         binding.placeTv.setText(trip.getPlace());
-//        peopletv.setText(trip.getPeople());
-//        datetv.setText(trip.getFirstDate().get());
-//        date2tv.setText(trip.getLastDate().get());
-//        placetv.setText(trip.getPlace());
 
         final Toolbar toolbar = (Toolbar) findViewById(R.id.htab_toolbar);
         setSupportActionBar(toolbar);
@@ -122,27 +132,6 @@ public class DetailActivity extends AppCompatActivity {
         binding.dateTv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                AlertDialog.Builder dialog = new AlertDialog.Builder(context);
-//                dialog.setTitle("여행상세 정보");
-//                dialog.setMessage("날짜를 입력하세요");
-//                dialog.setCancelable(true);
-//                final EditText name = new EditText(context);
-//                name.setInputType(EditorInfo.TYPE_CLASS_DATETIME);
-//                dialog.setView(name);
-//                dialog.setPositiveButton("ok", new DialogInterface.OnClickListener() {
-//                    public void onClick(DialogInterface dialog, int whichButton) {
-//                        datetv.setText(name.getText().toString());
-//                        dialog.dismiss();
-//                    }
-//                });
-//
-//                dialog.setNegativeButton("no",new DialogInterface.OnClickListener() {
-//                    public void onClick(DialogInterface dialog, int whichButton) {
-//                        dialog.dismiss();
-//                    }
-//                });
-//                dialog.show();
-
                 final Calendar c = Calendar.getInstance();
                 int mYear = c.get(Calendar.YEAR); // current year
                 int mMonth = c.get(Calendar.MONTH); // current month
@@ -215,38 +204,9 @@ public class DetailActivity extends AppCompatActivity {
         });
 
 
-        final CollapsingToolbarLayout collapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.htab_collapse_toolbar);
+        collapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.htab_collapse_toolbar);
 
-      //툴바색다르게하기
-        try {
-            Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sky);
-            Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-                @SuppressWarnings("ResourceType")
-                @Override
-                public void onGenerated(Palette palette) {
-                    vibrantColor = palette.getVibrantColor(R.color.primary_500);
-//                    vibrantDarkColor = palette.getDarkVibrantColor(R.color.primary_700);
-//                    vibrantLightColor = palette.getLightVibrantColor(R.color.primary_500);
-//                    MuteColor = palette.getMutedColor(R.color.primary_500);
-//                    MuteDarkColor = palette.getDarkMutedColor(R.color.primary_500);
-//                    MuteLightColor =palette.getLightMutedColor(R.color.primary_500);
-//                    Do=palette.getDominantColor(R.color.primary_500);
-
-                    collapsingToolbarLayout.setContentScrimColor(vibrantColor);
-                    changeStatusBarColor(vibrantColor);
-                }
-            });
-
-        } catch (Exception e) {
-            // if Bitmap fetch fails, fallback to primary colors
-            Log.e(TAG, "onCreate: failed to create bitmap from background", e.fillInStackTrace());
-            collapsingToolbarLayout.setContentScrimColor(
-                    ContextCompat.getColor(this, R.color.primary_500)
-            );
-            collapsingToolbarLayout.setStatusBarScrimColor(
-                    ContextCompat.getColor(this, R.color.primary_700)
-            );
-        }
+      changeBarColor();
 
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -271,6 +231,39 @@ public class DetailActivity extends AppCompatActivity {
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
 
+            }
+        });
+
+        backImg = (ImageView)findViewById(R.id.htab_header);
+        backImg.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog.Builder dialog = new AlertDialog.Builder(DetailActivity.this);
+
+                dialog.setMessage("변경할 배경을 선택하세요");
+                dialog.setCancelable(true);
+                dialog.setPositiveButton("앨범선택", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        selectGallery();
+                        dialog.dismiss();
+                    }
+                });
+                dialog.setNeutralButton("취소", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+                dialog.setNegativeButton("사진촬영", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        selectCamera();
+                        dialog.dismiss();
+                    }
+                });
+
+                dialog.show();
             }
         });
 
@@ -337,6 +330,42 @@ public class DetailActivity extends AppCompatActivity {
         }
     }
 
+    private void changeBarColor(){
+        //툴바색다르게하기
+        try {
+            Bitmap bitmap;
+            if(BASIC != -1){
+                bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sky);
+            }else{
+                bitmap = BitmapFactory.decodeFile(getRealPathFromURI(photoUri));
+            }
+
+            //bitmap = ((BitmapDrawable)backImg.getDrawable()).getBitmap();
+            Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+                @SuppressWarnings("ResourceType")
+                @Override
+                public void onGenerated(Palette palette) {
+
+                    int vibrantColor = palette.getVibrantColor(R.color.primary_500);
+                    int vibrantDarkColor = palette.getDarkVibrantColor(R.color.primary_700);
+                    collapsingToolbarLayout.setContentScrimColor(vibrantColor);
+                    //collapsingToolbarLayout.setStatusBarScrimColor(vibrantDarkColor);
+                    changeStatusBarColor(vibrantColor);
+                }
+            });
+
+        } catch (Exception e) {
+            // if Bitmap fetch fails, fallback to primary colors
+            //Log.e(TAG, "onCreate: failed to create bitmap from background", e.fillInStackTrace());
+            collapsingToolbarLayout.setContentScrimColor(
+                    ContextCompat.getColor(this, R.color.primary_500)
+            );
+//            collapsingToolbarLayout.setStatusBarScrimColor(
+//                    ContextCompat.getColor(this, R.color.primary_700)
+//            );
+        }
+    }
+
     private void changeStatusBarColor(int color){
         if (Build.VERSION.SDK_INT >= 21) {
             Window window = getWindow();
@@ -344,6 +373,99 @@ public class DetailActivity extends AppCompatActivity {
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
             window.setStatusBarColor(color);
         }
+    }
+
+
+    private void selectGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setData(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+        startActivityForResult(intent, PICK_FROM_ALBUM);
+    }
+
+    private String getRealPathFromURI(Uri contentUri) {
+        int column_index=0;
+        String[] proj = {MediaStore.Images.Media.DATA};
+        Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
+        if(cursor.moveToFirst()){
+            column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        }
+        return cursor.getString(column_index);
+    }
+
+    private void sendPicture(Uri imgUri) {
+
+        String imagePath = getRealPathFromURI(imgUri); // path 경로
+        Bitmap bitmap = BitmapFactory.decodeFile(imagePath);//경로를 통해 비트맵으로 전환
+        backImg.setImageBitmap(bitmap);
+        Log.e("!!!!!!!!!!!!!!!!!!!!", bitmap.getWidth()+"");
+    }
+
+    private File createImageFile() throws IOException {
+        File dir = new File(Environment.getExternalStorageDirectory() + "/Pictures", "TestScrollView");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        mImageCaptureName = timeStamp + ".png";
+
+        File storageDir = new File(dir, mImageCaptureName);
+        currentPhotoPath = storageDir.getAbsolutePath();
+
+        return storageDir;
+
+    }
+
+    private void selectCamera() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                File photoFile = null;
+                try {
+                    photoFile = createImageFile();
+                } catch (IOException ex) {
+
+                }
+                if (photoFile != null) {
+                    photoUri = FileProvider.getUriForFile(this, getPackageName(), photoFile);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+                    startActivityForResult(intent, PICK_FROM_CAMERA);
+                }
+            }
+
+        }
+    }
+
+    private void getPictureForPhoto() {
+        Bitmap bitmap = BitmapFactory.decodeFile(currentPhotoPath);
+        backImg.setImageBitmap(bitmap);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        //backImg.setImageURI(data.getData());
+        Log.e("activity result", resultCode + "");
+        if(resultCode != RESULT_OK) return;
+        Log.e("activity result", requestCode + "");
+        switch (requestCode){
+            case PICK_FROM_ALBUM:
+                Log.e("activity result", data.getData().toString());
+                sendPicture(data.getData()); //갤러리에서 가져오기
+                photoUri=data.getData();
+                BASIC = -1;
+                changeBarColor();
+                break;
+            case PICK_FROM_CAMERA:
+                getPictureForPhoto(); //카메라에서 가져오기
+                BASIC = -1;
+                changeBarColor();
+                break;
+            default:
+                break;
+        }
+
     }
 
 }
