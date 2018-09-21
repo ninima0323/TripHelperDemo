@@ -37,6 +37,7 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.kimnahyeon.testscrollview.fragment.ContentFragment;
 import com.example.kimnahyeon.testscrollview.fragment.MemoFragment;
@@ -55,18 +56,18 @@ public class DetailActivity extends AppCompatActivity {
 
     private static final String TAG = DetailActivity.class.getSimpleName();
     private Context context = this;
-    TextView peopletv, datetv, date2tv, placetv;
     ImageView backImg;
     Trip trip;
-    int vibrantColor, vibrantDarkColor, vibrantLightColor, MuteColor, MuteLightColor, MuteDarkColor, Do;
+
+    private final int NO_ALPHA_MASKING = 0xFF000000;
 
     private static final int PICK_FROM_CAMERA = 0000;
     private static final int PICK_FROM_ALBUM = 1111;
-    private int BASIC = 445556;
     private Uri photoUri;
     private String currentPhotoPath;//실제 사진 파일 경로
     String mImageCaptureName;//이미지 이름
     CollapsingToolbarLayout collapsingToolbarLayout;
+    private int BASIC = 445556;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -205,9 +206,7 @@ public class DetailActivity extends AppCompatActivity {
 
 
         collapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.htab_collapse_toolbar);
-
-      changeBarColor();
-
+        changeBarColor();
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
@@ -266,6 +265,7 @@ public class DetailActivity extends AppCompatActivity {
                 dialog.show();
             }
         });
+
 
     }
 
@@ -339,31 +339,44 @@ public class DetailActivity extends AppCompatActivity {
             }else{
                 bitmap = BitmapFactory.decodeFile(getRealPathFromURI(photoUri));
             }
-
-            //bitmap = ((BitmapDrawable)backImg.getDrawable()).getBitmap();
+            //Bitmap bitmap = ((BitmapDrawable)backImg.getDrawable()).getBitmap();
             Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
                 @SuppressWarnings("ResourceType")
                 @Override
                 public void onGenerated(Palette palette) {
-
-                    int vibrantColor = palette.getVibrantColor(R.color.primary_500);
-                    int vibrantDarkColor = palette.getDarkVibrantColor(R.color.primary_700);
-                    collapsingToolbarLayout.setContentScrimColor(vibrantColor);
-                    //collapsingToolbarLayout.setStatusBarScrimColor(vibrantDarkColor);
-                    changeStatusBarColor(vibrantColor);
+                    int vibrantColor = palette.getVibrantColor(R.color.sbDefault);
+                    int vibrantLightColor = palette.getDarkVibrantColor(R.color.tbDefault);
+                    Log.e("color", getColorHashCode(vibrantColor) );
+                    if(getColorHashCode(vibrantColor).equals("#7f060091"))//{
+                        Toast.makeText(DetailActivity.this, "색 추출 실패", Toast.LENGTH_LONG).show();
+//                        collapsingToolbarLayout.setContentScrimColor(removeAlphaProperty(R.color.tbDefault));
+//                        changeStatusBarColor(removeAlphaProperty(R.color.tbDefault));
+//                    }else{
+                        collapsingToolbarLayout.setContentScrimColor(removeAlphaProperty(vibrantColor));
+                        changeStatusBarColor(removeAlphaProperty(vibrantColor));
+                   // }
                 }
             });
 
         } catch (Exception e) {
+            Toast.makeText(DetailActivity.this, "색 추출 실패", Toast.LENGTH_LONG).show();
             // if Bitmap fetch fails, fallback to primary colors
             //Log.e(TAG, "onCreate: failed to create bitmap from background", e.fillInStackTrace());
             collapsingToolbarLayout.setContentScrimColor(
-                    ContextCompat.getColor(this, R.color.primary_500)
+                    ContextCompat.getColor(this, R.color.tbDefault)
             );
+            changeStatusBarColor(R.color.sbDefault);
 //            collapsingToolbarLayout.setStatusBarScrimColor(
 //                    ContextCompat.getColor(this, R.color.primary_700)
 //            );
         }
+    }
+
+    private String getColorHashCode(int color){
+        return "#" + Integer.toHexString(color);
+    }
+    private int removeAlphaProperty(int color){
+        return color | NO_ALPHA_MASKING;
     }
 
     private void changeStatusBarColor(int color){
@@ -375,6 +388,14 @@ public class DetailActivity extends AppCompatActivity {
         }
     }
 
+    private void galleryAddPic() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(currentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
+        Toast.makeText(this, "사진이 저장되었습니다", Toast.LENGTH_SHORT).show();
+    }
 
     private void selectGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK);
@@ -454,12 +475,13 @@ public class DetailActivity extends AppCompatActivity {
                 Log.e("activity result", data.getData().toString());
                 sendPicture(data.getData()); //갤러리에서 가져오기
                 photoUri=data.getData();
-                BASIC = -1;
+                BASIC=-1;
                 changeBarColor();
                 break;
             case PICK_FROM_CAMERA:
                 getPictureForPhoto(); //카메라에서 가져오기
-                BASIC = -1;
+                galleryAddPic();
+                BASIC=-1;
                 changeBarColor();
                 break;
             default:
