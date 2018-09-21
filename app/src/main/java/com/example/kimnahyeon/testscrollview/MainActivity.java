@@ -9,7 +9,6 @@ import android.databinding.ObservableArrayList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
-import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -53,11 +52,11 @@ public class MainActivity extends AppCompatActivity {
     ImageView backImg;
     private static final int PICK_FROM_CAMERA = 0000;
     private static final int PICK_FROM_ALBUM = 1111;
-    private int BASIC = 445556;
     private Uri photoUri;
     private String currentPhotoPath;//실제 사진 파일 경로
     String mImageCaptureName;//이미지 이름
     CollapsingToolbarLayout collapsingToolbarLayout;
+    private final int NO_ALPHA_MASKING = 0xFF000000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +64,18 @@ public class MainActivity extends AppCompatActivity {
         //setContentView(R.layout.activity_main);
 
         ActivityMainBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setHomeButtonEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(false);//트루면 백버튼이 생김
+
+
+        mAdapter = new TripAdapter(this, tripList);
+        binding.mainRv.setAdapter(mAdapter);
+        binding.setTripList(tripList);
+
+        prepareData();
 
         PermissionListener permissionlistener = new PermissionListener() {
             @Override
@@ -79,10 +90,13 @@ public class MainActivity extends AppCompatActivity {
         };
         TedPermission.with(this)
                 .setPermissionListener(permissionlistener)
-                .setRationaleMessage("저장소쓰기")
+                .setRationaleMessage("카메라/앨범 권한")
                 .setDeniedMessage("왜 거부하셨어요...\n하지만 [설정] > [권한] 에서 권한을 허용할 수 있어요.")
                 .setPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA)
                 .check();
+
+        collapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.collapsingToolbarLayout);
+
 
         backImg = (ImageView)findViewById(R.id.ivParallax);
         backImg.setOnClickListener(new View.OnClickListener() {
@@ -117,19 +131,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setHomeButtonEnabled(true);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(false);//트루면 백버튼이 생김
-
-
-        mAdapter = new TripAdapter(this, tripList);
-        binding.mainRv.setAdapter(mAdapter);
-        binding.setTripList(tripList);
-
-        prepareData();
-
-        collapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.collapsingToolbarLayout);
         changeBarColor();
     }
 
@@ -196,37 +197,46 @@ public class MainActivity extends AppCompatActivity {
     private void changeBarColor(){
         //툴바색다르게하기
         try {
-            Bitmap bitmap;
-            if(BASIC != -1){
-                bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.city);
-            }else{
-                bitmap = BitmapFactory.decodeFile(getRealPathFromURI(photoUri));
-            }
-
-           // bitmap = ((BitmapDrawable)backImg.getDrawable()).getBitmap();
+            Bitmap bitmap = ((BitmapDrawable)backImg.getDrawable()).getBitmap();
             Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
                 @SuppressWarnings("ResourceType")
                 @Override
                 public void onGenerated(Palette palette) {
+                    int vibrantColor = palette.getVibrantColor(R.color.sbDefault);
+                    int vibrantLightColor = palette.getDarkVibrantColor(R.color.tbDefault);
+                    //collapsingToolbarLayout.setContentScrimColor(removeAlphaProperty(vibrantLightColor));
+                    Log.e("color", getColorHashCode(vibrantColor) );
+                    if(getColorHashCode(vibrantColor).equals("#7f060091"))//{
+                        Toast.makeText(MainActivity.this, "색 추출 실패", Toast.LENGTH_LONG).show();
+//                        collapsingToolbarLayout.setContentScrimColor(R.color.sbDefault);
+//                        changeStatusBarColor(R.color.tbDefault);
+//                    }else{
+                        collapsingToolbarLayout.setContentScrimColor(removeAlphaProperty(vibrantColor));
+                        changeStatusBarColor(removeAlphaProperty(vibrantColor));
+                    //}
 
-                    int vibrantColor = palette.getVibrantColor(R.color.primary_500);
-                    int vibrantDarkColor = palette.getDarkVibrantColor(R.color.primary_700);
-                    collapsingToolbarLayout.setContentScrimColor(vibrantColor);
-                    //collapsingToolbarLayout.setStatusBarScrimColor(vibrantDarkColor);
-                    changeStatusBarColor(vibrantColor);
                 }
             });
 
         } catch (Exception e) {
+            Toast.makeText(MainActivity.this, "색 추출 실패", Toast.LENGTH_LONG).show();
             // if Bitmap fetch fails, fallback to primary colors
             //Log.e(TAG, "onCreate: failed to create bitmap from background", e.fillInStackTrace());
             collapsingToolbarLayout.setContentScrimColor(
-                    ContextCompat.getColor(this, R.color.primary_500)
+                    ContextCompat.getColor(this, R.color.tbDefault)
             );
+            changeStatusBarColor(R.color.sbDefault);
 //            collapsingToolbarLayout.setStatusBarScrimColor(
 //                    ContextCompat.getColor(this, R.color.primary_700)
 //            );
         }
+    }
+
+    private String getColorHashCode(int color){
+        return "#" + Integer.toHexString(color);
+    }
+    private int removeAlphaProperty(int color){
+        return color | NO_ALPHA_MASKING;
     }
 
     private void changeStatusBarColor(int color){
@@ -238,6 +248,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    private void galleryAddPic() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(currentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
+        Toast.makeText(this, "사진이 저장되었습니다", Toast.LENGTH_SHORT).show();
+    }
 
     private void selectGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK);
@@ -261,7 +280,6 @@ public class MainActivity extends AppCompatActivity {
         String imagePath = getRealPathFromURI(imgUri); // path 경로
         Bitmap bitmap = BitmapFactory.decodeFile(imagePath);//경로를 통해 비트맵으로 전환
         backImg.setImageBitmap(bitmap);
-        Log.e("!!!!!!!!!!!!!!!!!!!!", bitmap.getWidth()+"");
     }
 
     private File createImageFile() throws IOException {
@@ -317,12 +335,11 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("activity result", data.getData().toString());
                 sendPicture(data.getData()); //갤러리에서 가져오기
                 photoUri=data.getData();
-                BASIC = -1;
                 changeBarColor();
                 break;
             case PICK_FROM_CAMERA:
                 getPictureForPhoto(); //카메라에서 가져오기
-                BASIC = -1;
+                galleryAddPic();
                 changeBarColor();
                 break;
             default:

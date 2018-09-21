@@ -4,6 +4,10 @@
     <color name="colorPrimaryDark">#87abe1</color>
     <color name="colorAccent">#f76b99</color>
 
+    <!--toolbar default-->
+    <color name="sbDefault">#ffad392b</color>
+    <color name="tbDefault">#ffd04838</color>
+
     <!--Indigo 500-->
     <color name="primary_500">#3F51B5</color>
     <!--Indigo 700-->
