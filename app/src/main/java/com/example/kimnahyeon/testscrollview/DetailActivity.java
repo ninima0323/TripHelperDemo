@@ -81,6 +81,7 @@ public class DetailActivity extends AppCompatActivity {
 
         binding.setVariable(com.example.kimnahyeon.testscrollview.BR.trip, trip);
 
+        trip.setTid(binding.getTrip().getTid());
         binding.peopleTv.setText(trip.getPeople());
         binding.dateTv.setText(trip.getFirstDate().get());
         binding.date2Tv.setText(trip.getLastDate().get());
@@ -293,9 +294,17 @@ public class DetailActivity extends AppCompatActivity {
                 return true;
             case R.id.action_addMemo:
                 //메모추가
+                Intent intentMemo = new Intent(this, EditMemoActivity.class);
+                intentMemo.putExtra("barColor", trip.getBarColor());
+                intentMemo.putExtra("TripId", trip.getTid());
+                startActivity(intentMemo);
                 return true;
             case R.id.action_add:
                 //지출추가
+                Intent intent = new Intent(this, EditContentActivity.class);
+                intent.putExtra("barColor", trip.getBarColor());
+                intent.putExtra("TripId", trip.getTid());
+                startActivity(intent);
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -345,30 +354,20 @@ public class DetailActivity extends AppCompatActivity {
                 @Override
                 public void onGenerated(Palette palette) {
                     int vibrantColor = palette.getVibrantColor(R.color.sbDefault);
-                    int vibrantLightColor = palette.getDarkVibrantColor(R.color.tbDefault);
-                    Log.e("color", getColorHashCode(vibrantColor) );
+                    trip.setBarColor(vibrantColor);
                     if(getColorHashCode(vibrantColor).equals("#7f060091"))//{
                         Toast.makeText(DetailActivity.this, "색 추출 실패", Toast.LENGTH_LONG).show();
-//                        collapsingToolbarLayout.setContentScrimColor(removeAlphaProperty(R.color.tbDefault));
-//                        changeStatusBarColor(removeAlphaProperty(R.color.tbDefault));
-//                    }else{
                         collapsingToolbarLayout.setContentScrimColor(removeAlphaProperty(vibrantColor));
                         changeStatusBarColor(removeAlphaProperty(vibrantColor));
-                   // }
                 }
             });
 
         } catch (Exception e) {
             Toast.makeText(DetailActivity.this, "색 추출 실패", Toast.LENGTH_LONG).show();
-            // if Bitmap fetch fails, fallback to primary colors
-            //Log.e(TAG, "onCreate: failed to create bitmap from background", e.fillInStackTrace());
             collapsingToolbarLayout.setContentScrimColor(
                     ContextCompat.getColor(this, R.color.tbDefault)
             );
             changeStatusBarColor(R.color.sbDefault);
-//            collapsingToolbarLayout.setStatusBarScrimColor(
-//                    ContextCompat.getColor(this, R.color.primary_700)
-//            );
         }
     }
 

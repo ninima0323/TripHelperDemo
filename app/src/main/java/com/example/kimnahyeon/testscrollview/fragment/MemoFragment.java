@@ -43,7 +43,7 @@ public class MemoFragment extends Fragment {
         memoList.clear();
         int i;
         for(i=0; i<20; i++) {
-            Memo memo = new Memo("제목"+i,"내용"+i);
+            Memo memo = new Memo(i,"제목"+i,"내용"+i);
             memoList.add(memo);
         }
         mAdapter.notifyDataSetChanged();

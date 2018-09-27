@@ -8,6 +8,7 @@ public class Trip implements Parcelable{
     private String title;
     private String place;
     private int tid;
+    private int barColor;
     private String people = "";
     private final ObservableField<String> firstDate = new ObservableField<>();
     private final ObservableField<String> lastDate = new ObservableField<>();
@@ -21,6 +22,7 @@ public class Trip implements Parcelable{
         title = in.readString();
         place = in.readString();
         tid = in.readInt();
+        barColor = in.readInt();
         people = in.readString();
         //firstDate = in.read
     }
@@ -67,6 +69,14 @@ public class Trip implements Parcelable{
 
     public void setPeople(String people) {
         this.people = people;
+    }
+
+    public int getBarColor() {
+        return barColor;
+    }
+
+    public void setBarColor(int backColor) {
+        this.barColor = backColor;
     }
 
     public ObservableField<String> getFirstDate() {

@@ -46,16 +46,16 @@ public class ContentFragment extends Fragment {
         int i;
         for(i=0; i<20; i++) {
             if(i%4==0){
-                Content content = new Content("교통","지하철",i,"원");
+                Content content = new Content(i,"교통","지하철",i,"원");
                 contentList.add(content);
             }else if(i%4==1){
-                Content content = new Content("식사","스테이크",i,"원");
+                Content content = new Content(i,"식사","스테이크",i,"원");
                 contentList.add(content);
             }else if(i%4==2){
-                Content content = new Content("관람","성입장",i,"원");
+                Content content = new Content(i,"관람","성입장",i,"원");
                 contentList.add(content);
             }else{
-                Content content = new Content("쇼핑","엽서",i,"원");
+                Content content = new Content(i,"쇼핑","엽서",i,"원");
                 contentList.add(content);
             }
 
